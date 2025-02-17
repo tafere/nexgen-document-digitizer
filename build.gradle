@@ -1,0 +1,69 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.nexgen'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.maven.apache.org/maven2/' }
+    maven { url 'https://repo1.maven.org/maven2/' } // Add this for sardine
+}
+
+springBoot {
+    mainClass = 'com.nexgen.nexgen_document_digitizer.NexgenDocumentDigitizerApplication'
+}
+
+tasks.named('bootRun') {
+    outputs.upToDateWhen { false }  // Ensure the task is always run
+}
+
+dependencies {
+    // Spring Boot Data JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // Spring Boot Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Spring Boot Security
+    // implementation 'org.springframework.boot:spring-boot-starter-security'
+    // Spring Boot Thymeleaf
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // Sardine for WebDAV
+    implementation 'com.github.lookfirst:sardine:5.0'  // Updated to use Sardine instead of Jackrabbit
+    // implementation 'com.seanox:seanox-spring-webdav:3.5.0'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13' // Or a newer version
+
+    // MySQL JDBC Driver
+    implementation 'org.hibernate:hibernate-core:6.6.5.Final'
+    // implementation 'mysql:mysql-connector-java:8.0.29'
+    implementation 'org.postgresql:postgresql:42.5.0'  // Add PostgreSQL JDBC driver
+
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Spring Boot Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

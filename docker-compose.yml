@@ -1,0 +1,41 @@
+version: "3"
+services:
+  nextcloud:
+    image: nextcloud
+    ports:
+      - "8080:80"  # Map container port 80 to host port 8080
+    depends_on:
+      - postgres  # Ensure PostgreSQL starts before Nextcloud
+    environment:
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: Wediberhe1!  # Correct password for admin
+      NEXTCLOUD_DB_TYPE: pgsql
+      NEXTCLOUD_DB_NAME: nextcloud_db
+      NEXTCLOUD_DB_USER: nextcloud
+      NEXTCLOUD_DB_PASSWORD: test
+      NEXTCLOUD_DB_HOST: postgres  # PostgreSQL service name for Nextcloud to connect
+    networks:
+      - nextcloud-net
+    volumes:
+      - nextcloud_data:/var/www/html  # Named volume for Nextcloud data
+
+  postgres:
+    image: postgres:latest  # Use PostgreSQL image
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_USER: nextcloud
+      POSTGRES_DB: nextcloud_db
+    networks:
+      - nextcloud-net
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Named volume for PostgreSQL data
+    ports:
+      - "5432:5432"  # Expose port 5432 for PostgreSQL access from host
+
+networks:
+  nextcloud-net:
+    driver: bridge
+
+volumes:
+  nextcloud_data:  # Named volume for Nextcloud data
+  postgres_data:   # Named volume for PostgreSQL data
