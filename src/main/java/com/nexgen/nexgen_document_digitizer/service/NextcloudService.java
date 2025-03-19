@@ -1,69 +1,4 @@
 package com.nexgen.nexgen_document_digitizer.service;
-// import java.io.IOException;
-
-// import org.springframework.beans.factory.annotation.Value;
-// import org.springframework.http.HttpEntity;
-// import org.springframework.http.HttpHeaders;
-// import org.springframework.http.HttpMethod;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.stereotype.Service;
-// import org.springframework.web.client.RestTemplate;
-// import org.springframework.web.multipart.MultipartFile;
-
-// @Service
-// public class NextcloudService {
-
-//     @Value("${nextcloud.url}")
-//     private String nextcloudUrl;
-
-//     @Value("${nextcloud.username}")
-//     private String username;
-
-//     @Value("${nextcloud.password}")
-//     private String password;
-
-//     public String uploadFile(MultipartFile file) throws IOException {
-//         // String uploadUrl = nextcloudUrl + "/remote.php/dav/files/" + username + "/upload-folder/" + file.getOriginalFilename();
-//         // String uploadUrl = nextcloudUrl + "/remote.php/dav/files/" + username + "/" + file.getName();
-//         String fileName = file.getOriginalFilename(); // Get the original filename
-//         if (fileName == null || fileName.isEmpty()) {
-//             fileName = "default_filename"; // Set a default filename if it's missing
-//         }
-        
-//         // String uploadUrl = nextcloudUrl + "/remote.php/dav/files/" + username + "/" + fileName;
-//         String uploadUrl = "http://localhost:8080/remote.php/dav/files/admin/Auto_Insurance_1.png"; // Correct URL
-
-//         System.out.println("Uploading to: " + uploadUrl);
-
-
-
-//         // Prepare the file content for upload
-//         byte[] fileBytes = file.getBytes();
-
-//         // Prepare headers
-//         HttpHeaders headers = new HttpHeaders();
-//         headers.set("Authorization", "Basic " + java.util.Base64.getEncoder().encodeToString((username + ":" + password).getBytes()));
-
-//         // Prepare request entity
-//         HttpEntity<byte[]> entity = new HttpEntity<>(fileBytes, headers);
-
-//         // Create a RestTemplate instance to send the request
-//         RestTemplate restTemplate = new RestTemplate();
-
-//         try {
-//             ResponseEntity<String> response = restTemplate.exchange(uploadUrl, HttpMethod.PUT, entity, String.class);
-
-//             if (response.getStatusCode().is2xxSuccessful()) {
-//                 return "File uploaded successfully!";
-//             } else {
-//                 return "Failed to upload file. Response code: " + response.getStatusCode();
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//             return "Error uploading file: " + e.getMessage();
-//         }
-//     }
-// }
 
 import java.io.IOException;
 import java.util.Base64;
@@ -72,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -90,7 +27,8 @@ public class NextcloudService {
     private String password;
 
     public String uploadFile(MultipartFile file) throws IOException {
-        String uploadUrl = nextcloudUrl + "/remote.php/dav/files/" + username +"/"+ file.getOriginalFilename();
+        String fileName = file.getOriginalFilename();
+        String uploadUrl = nextcloudUrl + "/remote.php/dav/files/" + username +"/"+fileName ;
         System.out.println("Uploading to: " + uploadUrl);
 
         // Prepare the file content for upload
@@ -115,9 +53,78 @@ public class NextcloudService {
 
         // Check the response status
         if (response.getStatusCode().is2xxSuccessful()) {
-            return "File uploaded successfully";
+            return fileName;  // or return uploadUrl;
         } else {
             return "Failed to upload file: " + response.getStatusCode();
         }
     }
+
+        // Method to download file from Nextcloud by file ID
+        public byte[] downloadFile(String fileName) {
+            String downloadUrl = nextcloudUrl + "/remote.php/dav/files/" + username + "/" + fileName;
+            System.out.println("Downloading from: " + downloadUrl);
+        
+            // Create headers with Basic Authentication
+            HttpHeaders headers = new HttpHeaders();
+            String auth = username + ":" + password;
+            byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes());
+            String authHeader = "Basic " + new String(encodedAuth);
+            headers.set("Authorization", authHeader);
+        
+            // Create a RestTemplate instance
+            RestTemplate restTemplate = new RestTemplate();
+        
+            // Create the request entity
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+        
+            // Send the GET request
+            ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl, HttpMethod.GET, requestEntity, byte[].class);
+        
+            // Check the response status
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody();
+            } else {
+                throw new RuntimeException("Failed to download file: " + response.getStatusCode());
+            }
+        }
+    
+
+  // 🔹 View File (Stream to Browser)
+  public ResponseEntity<byte[]> viewFile(String fileName) {
+    String fileUrl = nextcloudUrl + "/remote.php/dav/files/" + username + "/" + fileName;
+    System.out.println("Fetching file for viewing: " + fileUrl);
+
+    HttpHeaders headers = new HttpHeaders();
+    String auth = username + ":" + password;
+    byte[] encodedAuth = Base64.getEncoder().encode(auth.getBytes());
+    headers.set("Authorization", "Basic " + new String(encodedAuth));
+
+    RestTemplate restTemplate = new RestTemplate();
+    HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+    ResponseEntity<byte[]> response = restTemplate.exchange(fileUrl, HttpMethod.GET, requestEntity, byte[].class);
+
+    if (response.getStatusCode().is2xxSuccessful()) {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.setContentType(MediaType.parseMediaType(determineContentType(fileName)));
+        return new ResponseEntity<>(response.getBody(), responseHeaders, HttpStatus.OK);
+    } else {
+        return ResponseEntity.status(response.getStatusCode()).build();
+    }
+}
+
+// 🔹 Determine Content-Type based on file extension
+private String determineContentType(String fileName) {
+    if (fileName.endsWith(".pdf")) return "application/pdf";
+    if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "image/jpeg";
+    if (fileName.endsWith(".png")) return "image/png";
+    if (fileName.endsWith(".txt")) return "text/plain";
+    return "application/octet-stream";
+}
+
+        // Method to delete a file from Nextcloud by file ID
+        public void deleteFile(String fileId) {
+            // Implement logic to delete the file from Nextcloud
+            System.out.println("File deleted from Nextcloud: " + fileId);
+        }
 }
